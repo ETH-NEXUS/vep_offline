@@ -1,0 +1,10 @@
+version: '3'
+services:
+  vep_rest:
+  #  image: dameyerdave/vep-offline-rest
+    build: .
+    image: dameyerdave/vep-offline-rest
+    volumes:
+      - '${HOME}/vep_data:/opt/vep/.vep'
+    ports:
+      - '5006:5005'
