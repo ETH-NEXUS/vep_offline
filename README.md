@@ -25,7 +25,7 @@ The api is quite simple: use
 http://localhost:5005/?q=11_119170358_A_G
 ```
 
-to query the variant `chr_position_ref_alt`.
+to query the variant `chr_position_ref_alt` or `chr_start_end_ref_alt` or `chr_start_end_[DEL|DUP]`.
 
 Additional VEP options can be defined as additional parameters (e.g. `&option=value`). The VEP options are documented in the VEP documentation.
 
