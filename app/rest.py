@@ -64,7 +64,7 @@ class Handler(BaseHTTPRequestHandler):
             'af': True,
             'max_af': True,
             'af_1kg': True,
-            'af_esp': True,
+            # 'af_esp': True,
             'af_gnomad': True,
             # 'af_exac': True,
             'pubmed': True,
@@ -83,7 +83,7 @@ class Handler(BaseHTTPRequestHandler):
             'biotype': True,
             'af': True,
             'af_1kg': True,
-            'af_esp': True,
+            # 'af_esp': True,
             'af_gnomad': True,
             'max_af': True,
             'pubmed': True,
@@ -95,7 +95,8 @@ class Handler(BaseHTTPRequestHandler):
             'variant_class': True,
             'gene_phenotype': True,
             'mirna': True,
-            'plugins': 'AncestralAllele,Blosum62,CADD,CSN,Carol,Condel,Conservation,DisGeNET,Downstream,Draw,ExAC,ExACpLI,FATHMM,FATHMM_MKL,FlagLRG,FunMotifs,G2P,GO,GeneSplicer,Gwava,HGVSIntronOffset,LD,LOVD,LoF,LoFtool,LocalID,MPC,MTR,Mastermind,MaxEntScan,NearestExonJB,NearestGene,PON_P2,Phenotypes,PostGAP,ProteinSeqs,REVEL,ReferenceQuality,SameCodon,SingleLetterAA,SpliceAI,SpliceRegion,StructuralVariantOverlap,SubsetVCF,TSSDistance,dbNSFP,dbscSNV,gnomADc,miRNA,neXtProt,satMutMPRA'
+            # 'plugin': 'CADD,CSN,Carol,Condel,Conservation,DisGeNET,Downstream,Draw,ExAC,ExACpLI,FATHMM,FATHMM_MKL,FlagLRG,FunMotifs,G2P,GO,GeneSplicer,Gwava,HGVSIntronOffset,LD,LOVD,LoF,LoFtool,LocalID,MPC,MTR,Mastermind,MaxEntScan,NearestExonJB,NearestGene,PON_P2,Phenotypes,PostGAP,ProteinSeqs,REVEL,ReferenceQuality,SameCodon,SingleLetterAA,SpliceAI,SpliceRegion,StructuralVariantOverlap,SubsetVCF,TSSDistance,dbNSFP,dbscSNV,gnomADc,miRNA,neXtProt,satMutMPRA'
+            'plugin': 'Draw,images/,1000,100'
         }
         vep_args.update(vep_options)
         command = ['/opt/vep/src/ensembl-vep/vep']
@@ -135,7 +136,13 @@ class Handler(BaseHTTPRequestHandler):
         for q in query:
             parts = q.split('_')
             if len(parts) == 4:
-                vep_input.append("{} {} . {} {}".format(*parts))
+                if parts[3] in ['DEL', 'DUP']:
+                    # Example structural variants
+                    # 1   160283      .   .   <DUP>   .   .   SVTYPE=DUP;END=471362    .
+                    # 1   1385015     .   .   <DEL>   .   .   SVTYPE=DEL;END=1387562   .
+                    vep_input.append(f"{parts[0]} {parts[1]} . . <{parts[3]}> . . SVTYPE={parts[3]};END={parts[2]}")
+                else:    
+                    vep_input.append("{} {} . {} {}".format(*parts))
             elif len(parts) == 5:
                 vep_input.append("{} {} {} {} {}".format(*parts))
             else:
@@ -147,6 +154,7 @@ class Handler(BaseHTTPRequestHandler):
         vep_options = {k: False if v[0] in ['0', 'false'] else True if v[0] in [
             '1', 'true'] else v[0] for k, v in vep_options.items()}
         del vep_options['q']
+        print('vep_input', vep_input)
         print('vep_options', vep_options)
         vep_data = self.__run_vep(vep_input, **vep_options)
         # print('vep_data', vep_data)

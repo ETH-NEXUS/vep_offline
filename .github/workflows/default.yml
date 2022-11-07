@@ -1,0 +1,19 @@
+name: Push README to Docker Hub
+on: push
+jobs:
+  PushContainerReadme:
+    runs-on: ubuntu-latest
+    name: Push README to Docker Hub
+    steps:
+      - name: git checkout
+        uses: actions/checkout@v2
+      - name: push README to Dockerhub
+        uses: christian-korneck/update-container-description-action@v1
+        env:
+          DOCKER_USER: dameyerdave
+          DOCKER_PASS: ${{ secrets.DOCKER_PASS }}
+        with:
+          destination_container_repo: dameyerdave/vep-offline-rest
+          provider: dockerhub
+          short_description: 'Offline VEP instance with a REST interface'
+          readme_file: 'README.md'

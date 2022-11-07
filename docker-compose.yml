@@ -6,5 +6,7 @@ services:
     image: dameyerdave/vep-offline-rest
     volumes:
       - '${HOME}/vep_data:/opt/vep/.vep'
+      - ./data/images:/opt/vep/src/ensembl-vep/images
+      - ./app:/app
     ports:
-      - '5006:5005'
+      - '5005:5005'
