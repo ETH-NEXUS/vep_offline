@@ -25,79 +25,63 @@ class Handler(BaseHTTPRequestHandler):
         fasta = 'Homo_sapiens.GRCh38.dna.primary_assembly.fa' if vep_options.get(
             'assembly') == 'GRCh38' else 'Homo_sapiens.GRCh37.75.dna.primary_assembly.fa'
 
+        # Arguments for the control flow
         vep_args = {
-            'cache': True,
-            'offline': True,
-            'merged': True,
-            'use_given_ref': True,
-            'assembly': 'GRCh38',
-            'fasta': join(DATA, fasta),
-            'canonical': True,
-            'hgvs': True,
-            'hgvsg': True,
-            'symbol': True,
-            'xref_refseq': True,
-            'af_gnomad': True,
-            'input_file': input_file,
-            # This is autodetected: 'format': 'vcf' if vcf_format else 'ensembl',
-            'output_file': output_file,
-            'json': True,
-            'force_overwrite': True,
             'dir_cache': DATA,
             'dir_plugins': join(DATA, 'Plugins'),
-            'sift': 'b',
-            'uniprot': True,
-            'ccds': True,
-            'max_af': True,
-            'variant_class': True,
-            'gene_phenotype': True,
-            'numbers': True,
-            'show_ref_allele': True,
-            'shift_genomic': '1',
-            'shift_3prime': '1',
-            'shift_length': True,
-            'protein': True,
-            'tsl': True,
-            'appris': True,
-            'biotype': True,
-            'domains': True,
-            'af': True,
-            'max_af': True,
-            'af_1kg': True,
-            # 'af_esp': True,
-            'af_gnomad': True,
-            # 'af_exac': True,
-            'pubmed': True,
-            'var_synonyms': True,
-            'flag_pick': True,
-            'sift': 'b',
-            'polyphen': 'b',
-            'ccds': True,
-            'hgvs': True,
-            'symbol': True,
-            'numbers': True,
-            'domains': True,
-            'regulatory': True,
-            'canonical': True,
-            'protein': True,
-            'biotype': True,
-            'af': True,
-            'af_1kg': True,
-            # 'af_esp': True,
-            'af_gnomad': True,
-            'max_af': True,
-            'pubmed': True,
-            'uniprot': True,
-            'mane': True,
-            # 'mane_select': True,
-            'tsl': True,
-            'appris': True,
-            'variant_class': True,
-            'gene_phenotype': True,
-            'mirna': True,
-            # 'plugin': 'CADD,CSN,Carol,Condel,Conservation,DisGeNET,Downstream,Draw,ExAC,ExACpLI,FATHMM,FATHMM_MKL,FlagLRG,FunMotifs,G2P,GO,GeneSplicer,Gwava,HGVSIntronOffset,LD,LOVD,LoF,LoFtool,LocalID,MPC,MTR,Mastermind,MaxEntScan,NearestExonJB,NearestGene,PON_P2,Phenotypes,PostGAP,ProteinSeqs,REVEL,ReferenceQuality,SameCodon,SingleLetterAA,SpliceAI,SpliceRegion,StructuralVariantOverlap,SubsetVCF,TSSDistance,dbNSFP,dbscSNV,gnomADc,miRNA,neXtProt,satMutMPRA'
-            'plugin': 'Draw,images/,1000,100'
+            'fasta': join(DATA, fasta),
+            # This is autodetected: 'format': 'vcf' if vcf_format else 'ensembl',
+            'input_file': input_file,
+            'output_file': output_file,
         }
+        # Editable arguments with default values (copy this to the README)
+        vep_args.update({
+            'af': True,
+            'af_1kg': True,
+            'af_gnomad': True,
+            'appris': True,
+            'assembly': 'GRCh38',
+            'biotype': True,
+            'cache': True,
+            'canonical': True,
+            'ccds': True,
+            'domains': True,
+            'flag_pick': True,
+            'force_overwrite': True,
+            'gene_phenotype': True,
+            'hgvs': True,
+            'hgvsg': True,
+            'json': True,
+            'mane': True,
+            'max_af': True,
+            'merged': True,
+            'mirna': True,
+            'numbers': True,
+            'offline': True,
+            'polyphen': 'b',
+            'protein': True,
+            'pubmed': True,
+            'regulatory': True,
+            'shift_3prime': '1',
+            'shift_genomic': '1',
+            'shift_length': True,
+            'show_ref_allele': True,
+            'sift': 'b',
+            'symbol': True,
+            'tsl': True,
+            'uniprot': True,
+            'use_given_ref': True,
+            'var_synonyms': True,
+            'variant_class': True,
+            'xref_refseq': True
+        })
+
+        # TODO: Plugins
+        # vep_args.update({
+        # 'plugin': 'CADD,CSN,Carol,Condel,Conservation,DisGeNET,Downstream,Draw,ExAC,ExACpLI,FATHMM,FATHMM_MKL,FlagLRG,FunMotifs,G2P,GO,GeneSplicer,Gwava,HGVSIntronOffset,LD,LOVD,LoF,LoFtool,LocalID,MPC,MTR,Mastermind,MaxEntScan,NearestExonJB,NearestGene,PON_P2,Phenotypes,PostGAP,ProteinSeqs,REVEL,ReferenceQuality,SameCodon,SingleLetterAA,SpliceAI,SpliceRegion,StructuralVariantOverlap,SubsetVCF,TSSDistance,dbNSFP,dbscSNV,gnomADc,miRNA,neXtProt,satMutMPRA'
+        # 'plugin': 'Draw,images/,1000,100'
+        # })
+
         vep_args.update(vep_options)
         command = ['/opt/vep/src/ensembl-vep/vep']
         for key, value in vep_args.items():
@@ -158,8 +142,8 @@ class Handler(BaseHTTPRequestHandler):
         vep_options = {k: False if v[0] in ['0', 'false'] else True if v[0] in [
             '1', 'true'] else v[0] for k, v in vep_options.items()}
         del vep_options['q']
-        print('vep_input', vep_input)
-        print('vep_options', vep_options)
+        # print('vep_input', vep_input)
+        # print('vep_options', vep_options)
         vep_data = self.__run_vep(vep_input, **vep_options)
         # print('vep_data', vep_data)
         self.send_response(200)
