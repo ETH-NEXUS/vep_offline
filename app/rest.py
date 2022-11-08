@@ -140,8 +140,12 @@ class Handler(BaseHTTPRequestHandler):
                     # Example structural variants
                     # 1   160283      .   .   <DUP>   .   .   SVTYPE=DUP;END=471362    .
                     # 1   1385015     .   .   <DEL>   .   .   SVTYPE=DEL;END=1387562   .
-                    vep_input.append(f"{parts[0]} {parts[1]} . . <{parts[3]}> . . SVTYPE={parts[3]};END={parts[2]}")
-                else:    
+                    vep_input.append(
+                        f"{parts[0]} {parts[1]} . . <{parts[3]}> . . SVTYPE={parts[3]};END={parts[2]}")
+                elif parts[1] > parts[2]:
+                    # we have an insertion
+                    vep_input.append("{} {} {} {}".format(*parts))
+                else:
                     vep_input.append("{} {} . {} {}".format(*parts))
             elif len(parts) == 5:
                 vep_input.append("{} {} {} {} {}".format(*parts))
