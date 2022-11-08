@@ -122,10 +122,16 @@ class Handler(BaseHTTPRequestHandler):
             if len(parts) == 4:
                 if parts[3] in ['DEL', 'DUP']:
                     # Example structural variants
+                    # VCF
                     # 1   160283      .   .   <DUP>   .   .   SVTYPE=DUP;END=471362    .
                     # 1   1385015     .   .   <DEL>   .   .   SVTYPE=DEL;END=1387562   .
+                    # Ensembl
+                    # 1    160283    471362    DUP  + sv1
+                    # 1    1385015   1387562   DEL + sv2
+                    # vep_input.append(
+                    #     f"{parts[0]} {parts[1]} . . <{parts[3]}> . . SVTYPE={parts[3]};END={parts[2]}")
                     vep_input.append(
-                        f"{parts[0]} {parts[1]} . . <{parts[3]}> . . SVTYPE={parts[3]};END={parts[2]}")
+                        f"{parts[0]} {parts[1]} {parts[2]} {parts[3]}")
                 elif parts[1] > parts[2]:
                     # we have an insertion
                     vep_input.append("{} {} {} {}".format(*parts))
@@ -142,8 +148,8 @@ class Handler(BaseHTTPRequestHandler):
         vep_options = {k: False if v[0] in ['0', 'false'] else True if v[0] in [
             '1', 'true'] else v[0] for k, v in vep_options.items()}
         del vep_options['q']
-        # print('vep_input', vep_input)
-        # print('vep_options', vep_options)
+        print('vep_input', vep_input)
+        print('vep_options', vep_options)
         vep_data = self.__run_vep(vep_input, **vep_options)
         # print('vep_data', vep_data)
         self.send_response(200)
