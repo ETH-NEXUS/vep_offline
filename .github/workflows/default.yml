@@ -1,7 +1,7 @@
 name: CI
 on: push
 jobs:
-  docker:
+  PushDockerImage:
     runs-on: ubuntu-latest
     steps:
       - name: Set up QEMU

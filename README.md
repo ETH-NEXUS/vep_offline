@@ -1,4 +1,4 @@
-# VEP Offline Rest
+# VEP Offline
 
 VEP Offline Rest is a docker container you can run to have VEP [https://www.ensembl.org/info/docs/tools/vep/index.html](Variant effect predictor) available as a rest service.
 
@@ -10,11 +10,15 @@ To use the image make sure you have a populated vep cache then add the following
 version: '3'
 services:
   vep_rest:
-   image: dameyerdave/vep-offline-rest
-   volumes:
-     - '${HOME}/vep_data:/opt/vep/.vep'
-   ports:
-     - '5005:5005'
+    image: ethnexus/vep_offline
+    volumes:
+      - '${HOME}/vep_data:/opt/vep/.vep'
+    ports:
+      - '5005:5005'
+    env_file:
+      - .env
+    command:
+      - rest
 ```
 
 ## API
@@ -82,4 +86,12 @@ Default options are:
 'var_synonyms': True,
 'variant_class': True,
 'xref_refseq': True
+```
+
+## Run any VEP command
+
+You can also use this docker image to run vep locally with whatever parameters you want:
+
+```bash
+docker run --rm vep_offline vep <your parameters>
 ```
