@@ -18,6 +18,8 @@ jobs:
         with:
           push: true
           tags: ethnexus/vep-offline:latest
+          build-args: |
+            VEP_VERSION=108.2
   PushContainerReadme:
     runs-on: ubuntu-latest
     name: Push README to Docker Hub
