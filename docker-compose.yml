@@ -6,6 +6,7 @@ services:
       args: 
         VEP_VERSION: ${VEP_VERSION}
     image: ${DOCKER_IMAGE}:${VEP_VERSION}
+    hostname: vep_offline
     volumes:
       - '${HOME}/vep_data:/opt/vep/.vep'
       - ./data/images:/opt/vep/src/ensembl-vep/images

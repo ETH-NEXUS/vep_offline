@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
 
 from pathlib import Path
-from os import environ
+from os import environ, remove
 from os.path import join, splitext, sep
 from sys import argv
+from glob import glob
 import re
 from friendlylog import colored_logger as log
 import tarfile
@@ -80,9 +81,22 @@ def __unzip(file, dir):
         raise Exception(f"Cannot unzip file {file}: {ex}")
 
 
+def __cleanup():
+    log.info(f"Removing temporary files from the cache ({DATA})...")
+    files = glob(join(DATA, 'tmp*'))
+    for file in files:
+        try:
+            remove(file)
+        except Exception as ex:
+            log.error(ex)
+
+
 def populate_cache(release, force=False):
+    __cleanup()
     if not INSTALLED.is_file() or force:
         log.info('Populating VEP cache...')
+        log.warning('...this can take a VERY LONG time...')
+        log.warning('...please be patient.')
         try:
             __rsync_and_extract(
                 CACHE['GRCh37'].format(release, release), force=True)
@@ -96,7 +110,7 @@ def populate_cache(release, force=False):
         except Exception as ex:
             raise Exception(f"Error populating cache: {ex}")
     else:
-        log.info('VEP cache is already polpulated, doing nothing.')
+        log.info('VEP cache is already populated, doing nothing.')
 
 
 if __name__ == '__main__':

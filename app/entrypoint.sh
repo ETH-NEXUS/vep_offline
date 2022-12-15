@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 
+./populate_cache.py
+
 if [ "${1}" == "rest" ]; then
-  ./populate_cache.py
   ./rest.py
 elif [ "${1}" == "populate" ]; then
   ./populate_cache.py -f
