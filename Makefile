@@ -1,4 +1,8 @@
-deploy: build
-	docker push dameyerdave/vep-offline-rest
+include .env
+
+default:
+	@echo "USAGE: make build|docker"
+docker: build
+	docker push ${DOCKER_IMAGE}:${VEP_VERSION}
 build: 
-	docker build . -t dameyerdave/vep-offline-rest
+	docker build . -t ${DOCKER_IMAGE}:${VEP_VERSION}

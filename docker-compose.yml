@@ -1,12 +1,18 @@
 version: '3'
 services:
-  vep_rest:
-  #  image: dameyerdave/vep-offline-rest
-    build: .
-    image: dameyerdave/vep-offline-rest
+  vep_offline:
+    build: 
+      context: .
+      args: 
+        VEP_VERSION: ${VEP_VERSION}
+    image: ${DOCKER_IMAGE}:${VEP_VERSION}
     volumes:
       - '${HOME}/vep_data:/opt/vep/.vep'
       - ./data/images:/opt/vep/src/ensembl-vep/images
       - ./app:/app
     ports:
       - '5005:5005'
+    env_file:
+      - .env
+    command:
+      - rest
