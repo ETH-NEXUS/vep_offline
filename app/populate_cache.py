@@ -3,14 +3,15 @@
 from pathlib import Path
 from os import environ, remove
 from os.path import join, splitext, sep
-from sys import argv
+from sys import argv, stdout
 from glob import glob
 import re
 from friendlylog import colored_logger as log
 import tarfile
 import gzip
 from subprocess import Popen, PIPE, STDOUT
-from shutil import move
+from shutil import move, copyfileobj
+import sh
 
 DATA = '/opt/vep/.vep'
 INSTALLED = Path(join(sep, '.installed'))
@@ -20,14 +21,28 @@ CACHE = {
     'GRCh38': 'http://ftp.ensembl.org/pub/release-{}/variation/indexed_vep_cache/homo_sapiens_merged_vep_{}_GRCh38.tar.gz',
 }
 
+LATEST_CACHE = {
+    'GRCh37': 'http://ftp.ensembl.org/pub/current-variation/indexed_vep_cache/homo_sapiens_merged_vep_*_GRCh37.tar.gz',
+    'GRCh38': 'http://ftp.ensembl.org/pub/current-variation/indexed_vep_cache/homo_sapiens_merged_vep_*_GRCh38.tar.gz',
+}
+
 # The last GRCh37 fasta file is in release 75:
 FASTA = {
     'GRCh37': 'http://ftp.ensembl.org/pub/release-75/fasta/homo_sapiens/dna/Homo_sapiens.GRCh37.75.dna.primary_assembly.fa.gz',
     'GRCh38': 'http://ftp.ensembl.org/pub/release-{}/fasta/homo_sapiens/dna/Homo_sapiens.GRCh38.dna.primary_assembly.fa.gz'
 }
 
+LATEST_FASTA = {
+    'GRCh37': 'http://ftp.ensembl.org/pub/release-75/fasta/homo_sapiens/dna/Homo_sapiens.GRCh37.75.dna.primary_assembly.fa.gz',
+    'GRCh38': 'http://ftp.ensembl.org/pub/current-fasta/homo_sapiens/dna/Homo_sapiens.GRCh38.dna.primary_assembly.fa.gz'
+}
+
 INDICATORS = ['\\', '|', '/', '|']
 indicator_idx = 0
+
+rsync = sh.Command('rsync')
+tar = sh.Command('tar')
+gunzip = sh.Command('gunzip')
 
 
 def next_indicator():
@@ -43,15 +58,31 @@ def __rsync_and_extract(url, force=False):
     url = re.sub(r'rsync://ftp.ensembl.org/', r'rsync://ftp.ensembl.org/ensembl/', url)
     local_file = join(DATA, re.sub(r'.*/', '', url))
     if force or not Path(local_file).is_file():
-        command = ['rsync', '-ahP', url, DATA]
-        log.info(f"Executing '{' '.join(command)}'...")
-        with Popen(command, shell=False, stdout=PIPE, stderr=STDOUT, bufsize=1, universal_newlines=True) as rsync:
-            nl = r'\n'
-            for line in rsync.stdout:
-                print(
-                    f"{re.sub(r'.*/', '', url)}: {re.sub(nl, '', line)}", end='\r')
-        if rsync.returncode == 0:
-            __unzip(local_file, DATA)
+        log.info(f">>> Downloading {url}...")
+        params = ['-avh', '--info=progress2', '--stats', '--human-readable', url, DATA]
+        proc = rsync(*params, _err_to_out=True, _iter=True)
+        for line in proc:
+            stdout.write(line)
+            stdout.flush()
+        log.info(f">>> Downloaded {local_file} with exit code {proc.exit_code}.")
+        if proc.exit_code == 0:
+            log.info(f">>> Extracting {local_file}...")
+            if local_file.endswith('.tar.gz'):
+                params = ['-xzf', local_file, '-C', DATA]
+                proc = tar(*params, _err_to_out=True, _iter=True)
+                for line in proc:
+                    stdout.write(line)
+                    stdout.flush()
+                log.info(f">>> Extracted {local_file}.")
+            elif local_file.endswith('.gz'):
+                if not Path(splitext(local_file)[0]).exists():
+                    proc = gunzip(local_file, _err_to_out=True, _iter=True)
+                    for line in proc:
+                        stdout.write(line)
+                        stdout.flush()
+                log.info(f">>> Extracted {local_file}.")
+            else:
+                log.error(f"Cannot extract {local_file}.")
         else:
             raise Exception(
                 f"Error rsyncing file '{url}'': {rsync.returncode}")
@@ -60,25 +91,21 @@ def __rsync_and_extract(url, force=False):
             f"File {local_file} already exists, skipping.")
 
 
-def __unzip(file, dir):
-    try:
-        if splitext(file)[1] == '.gz':
-            log.info(f"Gunzip {file}...")
-            with gzip.open(file, 'r') as gz:
-                file_content = gz.read()
-                file = splitext(file)[0]
-                new_file = join(dir, re.sub(r'.*/', '', file))
-                if not Path(new_file).is_file():
-                    with open(file, 'wb') as decompressed:
-                        decompressed.write(file_content)
-                    move(file, new_file)
-                file = new_file
-        if splitext(file)[1] == '.tar':
-            log.info(f"Untar {file} to {dir}...")
-            with tarfile.open(file) as tar:
-                tar.extractall(dir)
-    except Exception as ex:
-        raise Exception(f"Cannot unzip file {file}: {ex}")
+# def __unzip(file, dir):
+#     try:
+#         if splitext(file)[1] == '.gz':
+#             new_file = join(dir, re.sub(r'.*/', '', splitext(file)[0]))
+#             if not Path(new_file).is_file():
+#                 log.info(f"Gunzip {file} to {new_file}...")
+#                 with gzip.open(file, 'rb') as gz, open(new_file, 'wb') as decompressed:
+#                     copyfileobj(gz, decompressed)
+#                 file = new_file
+#         if splitext(file)[1] == '.tar':
+#             log.info(f"Untar {file} to {dir}...")
+#             with tarfile.open(file) as tar:
+#                 tar.extractall(dir)
+#     except Exception as ex:
+#         raise Exception(f"Cannot unzip file {file}: {ex}")
 
 
 def __cleanup():
@@ -91,21 +118,24 @@ def __cleanup():
             log.error(ex)
 
 
-def populate_cache(release, force=False):
+def populate_cache(release, noGRCh37=False, force=False):
     __cleanup()
     if not INSTALLED.is_file() or force:
         log.info('Populating VEP cache...')
         log.warning('...this can take a VERY LONG time...')
         log.warning('...please be patient.')
         try:
-            __rsync_and_extract(
-                CACHE['GRCh37'].format(release, release), force=True)
-            __rsync_and_extract(
-                CACHE['GRCh38'].format(release, release), force=True)
-            __rsync_and_extract(
-                FASTA['GRCh37'], force=True)
-            __rsync_and_extract(
-                FASTA['GRCh38'].format(release), force=True)
+            if release == 'latest':
+                __rsync_and_extract(LATEST_FASTA['GRCh38'], force=True)
+                __rsync_and_extract(LATEST_CACHE['GRCh38'], force=True)
+                noGRCh37 or __rsync_and_extract(LATEST_FASTA['GRCh37'], force=True)
+                noGRCh37 or __rsync_and_extract(LATEST_CACHE['GRCh37'], force=True)
+            else:
+                __rsync_and_extract(FASTA['GRCh38'].format(release), force=True)
+                __rsync_and_extract(CACHE['GRCh38'].format(release, release), force=True)
+                noGRCh37 or __rsync_and_extract(FASTA['GRCh37'], force=True)
+                noGRCh37 or __rsync_and_extract(CACHE['GRCh37'].format(release, release), force=True)
+
             INSTALLED.touch()
         except Exception as ex:
             raise Exception(f"Error populating cache: {ex}")
@@ -119,6 +149,7 @@ if __name__ == '__main__':
         force = False
         if len(argv) > 1 and argv[1] == '-f':
             force = True
-        populate_cache(vep_version, force)
+        noGRCh37 = environ.get('DISABLE_GRCH37', 'false').lower() == 'true'
+        populate_cache(vep_version, noGRCh37, force)
     else:
         log.error("Environment variable VEP_VERSION is not set!")

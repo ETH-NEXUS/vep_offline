@@ -5,4 +5,4 @@ default:
 docker: build
 	docker push ${DOCKER_IMAGE}:${VEP_VERSION}
 build: 
-	docker build . -t ${DOCKER_IMAGE}:${VEP_VERSION}
+	docker build . --build-arg VEP_VERSION=${VEP_VERSION} -t ${DOCKER_IMAGE}:${VEP_VERSION}

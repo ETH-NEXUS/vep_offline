@@ -9,7 +9,7 @@ To use the image make sure you have a populated vep cache then add the following
 ```yaml
 version: '3'
 services:
-  vep_rest:
+  rest:
     image: ethnexus/vep_offline
     volumes:
       - '${HOME}/vep_data:/opt/vep/.vep'
@@ -95,3 +95,8 @@ You can also use this docker image to run vep locally with whatever parameters y
 ```bash
 docker run --rm vep_offline vep <your parameters>
 ```
+
+## Update the VEP cache version
+
+To update the VEP cache version you need to change the environment variable `VEP_VERSION` to the appropriate one. Please chose one from
+[https://hub.docker.com/r/ensemblorg/ensembl-vep/tags](ensemble-vep docker image tags) (i.e. 108.2).
